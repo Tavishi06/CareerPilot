@@ -1,26 +1,18 @@
-# Dependencies
-node_modules/
-frontend/node_modules/
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
 
-# Environment variables
+# Environment files
 .env
 .env.*
 !.env.example
 
-# Python
-__pycache__/
-*.py[cod]
-.venv/
-venv/
-
-# Build files
+# Frontend
+node_modules/
 dist/
-frontend/dist/
 
-# IDE
-.vscode/
-.idea/
-
-# OS
+# Editor and OS
 .DS_Store
-Thumbs.db
+.idea/
