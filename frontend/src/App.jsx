@@ -26,7 +26,7 @@ export default function App() {
       setApiStatus("online");
       setApiMessage(`${data.app} · v${data.version}`);
 
-    } catch (error) {
+    } catch {
       setApiStatus("offline");
       setApiMessage(
         "Backend not reachable. Start the FastAPI server and retry."
@@ -35,7 +35,9 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    checkApi();
+    const initialCheck = window.setTimeout(checkApi, 0);
+
+    return () => window.clearTimeout(initialCheck);
   }, [checkApi]);
 
   const isOnline = apiStatus === "online";
