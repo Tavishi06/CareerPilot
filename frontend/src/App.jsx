@@ -8,14 +8,17 @@ export default function App() {
   const [apiMessage, setApiMessage] = useState(
     "Connecting to CareerPilot backend..."
   );
+  const [resumeText, setResumeText] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
+  const [analysis, setAnalysis] = useState(null);
+  const [analysisStatus, setAnalysisStatus] = useState("idle");
+  const [analysisError, setAnalysisError] = useState("");
 
   const checkApi = useCallback(async () => {
     setApiStatus("checking");
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/v1/health`
-      );
+      const response = await fetch(`${API_BASE_URL}/api/v1/health`);
 
       if (!response.ok) {
         throw new Error(`API returned ${response.status}`);
@@ -25,7 +28,6 @@ export default function App() {
 
       setApiStatus("online");
       setApiMessage(`${data.app} · v${data.version}`);
-
     } catch {
       setApiStatus("offline");
       setApiMessage(
@@ -40,140 +42,247 @@ export default function App() {
     return () => window.clearTimeout(initialCheck);
   }, [checkApi]);
 
+  const handleAnalyze = async (event) => {
+    event.preventDefault();
+    setAnalysisStatus("loading");
+    setAnalysisError("");
+    setAnalysis(null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resume_text: resumeText,
+          job_description: jobDescription,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || `Analysis failed (${response.status}).`);
+      }
+
+      setAnalysis(data);
+      setAnalysisStatus("success");
+    } catch (error) {
+      setAnalysisError(
+        error instanceof Error ? error.message : "Analysis could not be completed."
+      );
+      setAnalysisStatus("error");
+    }
+  };
+
   const isOnline = apiStatus === "online";
 
   return (
     <div className="min-h-screen bg-[#0b1020] text-slate-100">
-
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-500 font-bold text-xl">
+        <a href="#" className="flex items-center gap-3 text-inherit no-underline">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-500 text-xl font-bold">
             C
           </div>
-
           <div>
-            <h1 className="text-xl font-bold">
-              CareerPilot AI
-            </h1>
-
-            <p className="text-xs text-slate-400">
-              Intelligent Career Companion
-            </p>
+            <h1 className="text-xl font-bold">CareerPilot AI</h1>
+            <p className="text-xs text-slate-400">Intelligent Career Companion</p>
           </div>
-        </div>
-
+        </a>
         <span className="rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300">
-          Development Preview
+          Early access
         </span>
-
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-16">
-
-        <div className="mb-6 inline-flex rounded-full border border-indigo-400/30 bg-indigo-400/10 px-4 py-2 text-sm text-indigo-300">
-          AI-powered career intelligence
-        </div>
-
-        <h2 className="max-w-3xl text-4xl font-bold leading-tight md:text-6xl">
-          Your career deserves
-          <span className="text-indigo-400"> a smarter strategy.</span>
-        </h2>
-
-        <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-400">
-          Analyze real job opportunities, discover your skill gaps,
-          prepare for interviews and make better career decisions
-          with AI-powered assistance.
-        </p>
-
-        <section className="mt-12 grid gap-5 md:grid-cols-3">
-
-          {[
-            {
-              title: "Job Intelligence",
-              description:
-                "Understand real job requirements and evaluate your suitability."
-            },
-            {
-              title: "Skill Gap Analysis",
-              description:
-                "Discover missing skills and receive a practical learning roadmap."
-            },
-            {
-              title: "Interview Preparation",
-              description:
-                "Prepare for technical interviews based on actual job requirements."
-            }
-          ].map((feature) => (
-            <div
-              key={feature.title}
-              className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6"
-            >
-              <h3 className="text-lg font-semibold">
-                {feature.title}
-              </h3>
-
-              <p className="mt-3 text-sm leading-7 text-slate-400">
-                {feature.description}
-              </p>
-            </div>
-          ))}
-
+      <main className="mx-auto max-w-6xl px-6 pb-16">
+        <section className="py-12 md:py-16">
+          <div className="mb-6 inline-flex rounded-full border border-indigo-400/30 bg-indigo-400/10 px-4 py-2 text-sm text-indigo-300">
+            AI-powered career intelligence
+          </div>
+          <h2 className="max-w-3xl text-4xl font-bold leading-tight md:text-6xl">
+            Make your next move
+            <span className="text-indigo-400"> with a clearer strategy.</span>
+          </h2>
+          <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-400">
+            Compare your experience with a job description, see the skills that
+            match, and spot areas to prepare before you apply.
+          </p>
         </section>
 
-        <section className="mt-10 rounded-2xl border border-slate-800 bg-slate-900 p-6">
-
-          <div className="flex flex-wrap items-center justify-between gap-4">
-
-            <div>
-              <h3 className="font-semibold">
-                Backend connection
+        <section
+          aria-labelledby="analysis-heading"
+          className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]"
+        >
+          <form
+            onSubmit={handleAnalyze}
+            className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 md:p-8"
+          >
+            <div className="mb-6">
+              <p className="text-sm font-semibold uppercase tracking-wide text-indigo-300">
+                Job match
+              </p>
+              <h3 id="analysis-heading" className="mt-2 text-2xl font-bold">
+                Start with the details
               </h3>
-
-              <p className="mt-2 text-sm text-slate-400">
-                {apiMessage}
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                Paste your resume text and the job description to get a
+                first-pass skill comparison.
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <label
+              htmlFor="resume-text"
+              className="mb-2 block text-sm font-medium text-slate-200"
+            >
+              Resume text
+            </label>
+            <textarea
+              id="resume-text"
+              required
+              value={resumeText}
+              onChange={(event) => setResumeText(event.target.value)}
+              placeholder="Paste your resume text here..."
+              className="mb-5 min-h-40 w-full resize-y rounded-xl border border-slate-700 bg-[#0b1020] p-4 text-sm leading-6 text-slate-100 outline-none placeholder:text-slate-500 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20"
+            />
 
+            <label
+              htmlFor="job-description"
+              className="mb-2 block text-sm font-medium text-slate-200"
+            >
+              Job description
+            </label>
+            <textarea
+              id="job-description"
+              required
+              value={jobDescription}
+              onChange={(event) => setJobDescription(event.target.value)}
+              placeholder="Paste the job description here..."
+              className="min-h-40 w-full resize-y rounded-xl border border-slate-700 bg-[#0b1020] p-4 text-sm leading-6 text-slate-100 outline-none placeholder:text-slate-500 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20"
+            />
+
+            <button
+              type="submit"
+              disabled={analysisStatus === "loading"}
+              className="mt-5 w-full rounded-xl bg-indigo-500 px-5 py-3 font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-wait disabled:opacity-60"
+            >
+              {analysisStatus === "loading" ? "Analyzing..." : "Analyze skill match"}
+            </button>
+            <p className="mt-3 text-xs leading-5 text-slate-500">
+              This first-pass analysis uses a transparent set of supported
+              skill keywords. It does not replace a full resume review.
+            </p>
+          </form>
+
+          <section
+            aria-live="polite"
+            aria-labelledby="results-heading"
+            className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 md:p-8"
+          >
+            <p className="text-sm font-semibold uppercase tracking-wide text-indigo-300">
+              Your results
+            </p>
+            <h3 id="results-heading" className="mt-2 text-2xl font-bold">
+              Skill match overview
+            </h3>
+
+            {!analysis && analysisStatus !== "error" && (
+              <div className="mt-8 rounded-xl border border-dashed border-slate-700 p-6">
+                <p className="font-medium text-slate-300">
+                  Your analysis will appear here.
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  Add both texts and run an analysis to see matched and missing
+                  skills.
+                </p>
+              </div>
+            )}
+
+            {analysisStatus === "error" && (
+              <p
+                role="alert"
+                className="mt-8 rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-200"
+              >
+                {analysisError}
+              </p>
+            )}
+
+            {analysis && (
+              <div className="mt-8 space-y-6">
+                <div className="flex items-end gap-3">
+                  <strong className="text-5xl font-bold text-indigo-300">
+                    {analysis.match_percentage}%
+                  </strong>
+                  <span className="pb-1 text-sm text-slate-400">
+                    of identified job skills found in your resume
+                  </span>
+                </div>
+                <SkillList title="Matched skills" skills={analysis.matched_skills} />
+                <SkillList title="Skills to build" skills={analysis.missing_skills} />
+              </div>
+            )}
+          </section>
+        </section>
+
+        <section className="mt-10 rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h3 className="font-semibold">Backend connection</h3>
+              <p className="mt-2 text-sm text-slate-400">{apiMessage}</p>
+            </div>
+            <div className="flex items-center gap-3">
               <span
+                aria-hidden="true"
                 className={`h-3 w-3 rounded-full ${
                   isOnline
                     ? "bg-emerald-400"
                     : apiStatus === "checking"
-                    ? "bg-amber-400"
-                    : "bg-red-400"
+                      ? "bg-amber-400"
+                      : "bg-red-400"
                 }`}
               />
-
               <span className="text-sm font-medium">
                 {apiStatus === "checking"
                   ? "Checking..."
                   : isOnline
-                  ? "Connected"
-                  : "Disconnected"}
+                    ? "Connected"
+                    : "Disconnected"}
               </span>
-
               <button
+                type="button"
                 onClick={checkApi}
                 disabled={apiStatus === "checking"}
-                className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold hover:bg-indigo-400 disabled:opacity-50"
+                className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold hover:border-indigo-400 disabled:opacity-50"
               >
                 Retry
               </button>
-
             </div>
-
           </div>
-
         </section>
 
-        <footer className="mt-16 border-t border-slate-800 pt-6 text-center text-sm text-slate-500">
+        <footer className="mt-12 border-t border-slate-800 pt-6 text-center text-sm text-slate-500">
           CareerPilot AI · Built for smarter career decisions
         </footer>
-
       </main>
+    </div>
+  );
+}
+
+function SkillList({ title, skills }) {
+  return (
+    <div>
+      <h4 className="mb-3 text-sm font-semibold text-slate-200">{title}</h4>
+      {skills.length > 0 ? (
+        <ul className="flex flex-wrap gap-2">
+          {skills.map((skill) => (
+            <li
+              key={skill}
+              className="rounded-full border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200"
+            >
+              {skill}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-slate-500">None identified.</p>
+      )}
     </div>
   );
 }
