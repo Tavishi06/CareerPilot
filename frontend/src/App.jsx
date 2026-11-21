@@ -8,6 +8,9 @@ export default function App() {
   const [apiMessage, setApiMessage] = useState(
     "Connecting to CareerPilot backend..."
   );
+  const [resumeFile, setResumeFile] = useState(null);
+  const [resumeExtractStatus, setResumeExtractStatus] = useState("idle");
+  const [resumeExtractError, setResumeExtractError] = useState("");
   const [resumeText, setResumeText] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [analysis, setAnalysis] = useState(null);
@@ -41,6 +44,37 @@ export default function App() {
 
     return () => window.clearTimeout(initialCheck);
   }, [checkApi]);
+
+  const handleExtractResume = async () => {
+    if (!resumeFile) {
+      return;
+    }
+
+    setResumeExtractStatus("loading");
+    setResumeExtractError("");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", resumeFile);
+      const response = await fetch(`${API_BASE_URL}/api/v1/resume/extract`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || `Resume extraction failed (${response.status}).`);
+      }
+
+      setResumeText(data.text);
+      setResumeExtractStatus("success");
+    } catch (error) {
+      setResumeExtractError(
+        error instanceof Error ? error.message : "Resume extraction could not be completed."
+      );
+      setResumeExtractStatus("error");
+    }
+  };
 
   const handleAnalyze = async (event) => {
     event.preventDefault();
@@ -132,14 +166,53 @@ export default function App() {
               htmlFor="resume-text"
               className="mb-2 block text-sm font-medium text-slate-200"
             >
-              Resume text
+              Resume
             </label>
+            <div className="mb-4 rounded-xl border border-slate-700 bg-[#0b1020] p-4">
+              <label
+                htmlFor="resume-file"
+                className="mb-2 block text-sm font-medium text-slate-300"
+              >
+                Upload a PDF resume (up to 5 MB)
+              </label>
+              <input
+                id="resume-file"
+                type="file"
+                accept=".pdf,application/pdf"
+                onChange={(event) => {
+                  setResumeFile(event.target.files?.[0] || null);
+                  setResumeExtractStatus("idle");
+                  setResumeExtractError("");
+                }}
+                className="block w-full text-sm text-slate-400 file:mr-4 file:rounded-lg file:border-0 file:bg-slate-800 file:px-4 file:py-2 file:font-medium file:text-slate-200 hover:file:bg-slate-700"
+              />
+              <button
+                type="button"
+                onClick={handleExtractResume}
+                disabled={!resumeFile || resumeExtractStatus === "loading"}
+                className="mt-3 rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold hover:border-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {resumeExtractStatus === "loading"
+                  ? "Extracting text..."
+                  : "Extract text from PDF"}
+              </button>
+              {resumeExtractStatus === "success" && (
+                <p className="mt-3 text-sm text-emerald-300">
+                  Text extracted. Review it below before analyzing.
+                </p>
+              )}
+              {resumeExtractStatus === "error" && (
+                <p role="alert" className="mt-3 text-sm text-red-300">
+                  {resumeExtractError}
+                </p>
+              )}
+            </div>
             <textarea
               id="resume-text"
               required
               value={resumeText}
               onChange={(event) => setResumeText(event.target.value)}
-              placeholder="Paste your resume text here..."
+              placeholder="Extract text from a PDF or paste your resume here..."
               className="mb-5 min-h-40 w-full resize-y rounded-xl border border-slate-700 bg-[#0b1020] p-4 text-sm leading-6 text-slate-100 outline-none placeholder:text-slate-500 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20"
             />
 
