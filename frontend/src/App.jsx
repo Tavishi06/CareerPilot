@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+const PROGRESS_STORAGE_KEY = "careerpilot.completedSkills";
 
 export default function App() {
   const [apiStatus, setApiStatus] = useState("checking");
@@ -17,7 +18,8 @@ export default function App() {
   const [analysis, setAnalysis] = useState(null);
   const [analysisStatus, setAnalysisStatus] = useState("idle");
   const [analysisError, setAnalysisError] = useState("");
-  const [completedSkills, setCompletedSkills] = useState(() => new Set());
+  const [progress, setProgress] = useState(loadProgress);
+  const completedSkills = progress.skills;
 
   const checkApi = useCallback(async () => {
     setApiStatus("checking");
@@ -83,7 +85,6 @@ export default function App() {
     setAnalysisStatus("loading");
     setAnalysisError("");
     setAnalysis(null);
-    setCompletedSkills(new Set());
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/v1/analyze`, {
@@ -112,15 +113,25 @@ export default function App() {
   };
 
   const toggleMilestone = (skill) => {
-    setCompletedSkills((currentSkills) => {
-      const nextSkills = new Set(currentSkills);
-      if (nextSkills.has(skill)) {
-        nextSkills.delete(skill);
-      } else {
-        nextSkills.add(skill);
-      }
-      return nextSkills;
-    });
+    const nextSkills = new Set(completedSkills);
+    if (nextSkills.has(skill)) {
+      nextSkills.delete(skill);
+    } else {
+      nextSkills.add(skill);
+    }
+
+    try {
+      window.localStorage.setItem(
+        PROGRESS_STORAGE_KEY,
+        JSON.stringify([...nextSkills])
+      );
+      setProgress({ skills: nextSkills, error: "" });
+    } catch {
+      setProgress({
+        skills: nextSkills,
+        error: "Progress could not be saved in this browser.",
+      });
+    }
   };
 
   const isOnline = apiStatus === "online";
@@ -328,6 +339,7 @@ export default function App() {
                 <LearningRoadmap
                   plan={analysis.learning_plan}
                   completedSkills={completedSkills}
+                  progressError={progress.error}
                   onToggleMilestone={toggleMilestone}
                 />
               </div>
@@ -401,7 +413,12 @@ function SkillList({ title, skills }) {
   );
 }
 
-function LearningRoadmap({ plan, completedSkills, onToggleMilestone }) {
+function LearningRoadmap({
+  plan,
+  completedSkills,
+  progressError,
+  onToggleMilestone,
+}) {
   const completedCount = plan.milestones.filter((milestone) =>
     completedSkills.has(milestone.skill)
   ).length;
@@ -491,10 +508,39 @@ function LearningRoadmap({ plan, completedSkills, onToggleMilestone }) {
           practicing and review the job requirements before applying.
         </p>
       )}
+      {progressError && (
+        <p role="status" className="mt-3 text-xs text-amber-300">
+          {progressError}
+        </p>
+      )}
       <p className="mt-3 text-xs leading-5 text-slate-500">
         Time estimates are approximate. Adjust the plan to fit your experience
         and learning pace.
       </p>
     </section>
   );
+}
+
+function loadProgress() {
+  try {
+    const savedProgress = window.localStorage.getItem(PROGRESS_STORAGE_KEY);
+    if (!savedProgress) {
+      return { skills: new Set(), error: "" };
+    }
+
+    const parsedProgress = JSON.parse(savedProgress);
+    if (
+      !Array.isArray(parsedProgress) ||
+      parsedProgress.some((skill) => typeof skill !== "string")
+    ) {
+      throw new Error("Saved progress has an invalid format.");
+    }
+
+    return { skills: new Set(parsedProgress), error: "" };
+  } catch {
+    return {
+      skills: new Set(),
+      error: "Saved progress could not be loaded from this browser.",
+    };
+  }
 }
