@@ -72,6 +72,15 @@ lets you mark milestones complete, and can download it as a CSV. Completion
 state is stored only in your browser's local storage; it is not synced between
 devices or users. Resource durations and target weeks are estimates.
 
+Mock interview questions are available at `POST /api/v1/mock-interview/questions`
+with a `skills` array. The endpoint returns up to five curated questions in the
+provided skill order. Submit an answer to
+`POST /api/v1/mock-interview/evaluate` with its `question_id` and `answer` to
+receive rubric coverage and feedback. Evaluation is deterministic keyword
+matching against published rubric concepts; it is not AI grading or a measure
+of a candidate's overall ability. Interview answers are not persisted by the
+backend.
+
 Resume PDFs can be uploaded to `POST /api/v1/resume/extract` as multipart form
 data using the `file` field. The endpoint returns extracted selectable text,
 which can then be checked and edited in the frontend before analysis. Uploads
