@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 
@@ -147,3 +148,26 @@ INTERVIEW_QUESTIONS = {
         ),
     ),
 }
+
+
+MAX_INTERVIEW_QUESTIONS = 5
+
+
+def select_questions(skills: Sequence[str]) -> list[InterviewQuestion]:
+    selected_skills = list(dict.fromkeys(skills))
+    if not selected_skills:
+        raise ValueError("Select at least one supported interview skill.")
+
+    unsupported_skills = [
+        skill for skill in selected_skills if skill not in INTERVIEW_QUESTIONS
+    ]
+    if unsupported_skills:
+        raise ValueError(
+            "No interview question is available for: "
+            + ", ".join(unsupported_skills)
+        )
+
+    return [
+        INTERVIEW_QUESTIONS[skill]
+        for skill in selected_skills[:MAX_INTERVIEW_QUESTIONS]
+    ]
