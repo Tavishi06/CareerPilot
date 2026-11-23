@@ -422,6 +422,42 @@ function LearningRoadmap({
   const completedCount = plan.milestones.filter((milestone) =>
     completedSkills.has(milestone.skill)
   ).length;
+  const handleDownload = () => {
+    const columns = [
+      "Step",
+      "Skill",
+      "Resource",
+      "Objective",
+      "Estimated hours",
+      "Start week",
+      "Target week",
+      "URL",
+    ];
+    const rows = plan.milestones.map((milestone) => [
+      milestone.sequence,
+      milestone.skill,
+      milestone.title,
+      milestone.objective,
+      milestone.estimated_hours,
+      milestone.start_week,
+      milestone.target_week,
+      milestone.url,
+    ]);
+    const csv = [columns, ...rows]
+      .map((row) =>
+        row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(",")
+      )
+      .join("\r\n");
+    const file = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const downloadUrl = window.URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = "careerpilot-learning-roadmap.csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => window.URL.revokeObjectURL(downloadUrl), 0);
+  };
 
   return (
     <section aria-labelledby="roadmap-heading" className="border-t border-slate-800 pt-6">
@@ -436,11 +472,22 @@ function LearningRoadmap({
             hours per week
           </p>
         </div>
-        {plan.milestones.length > 0 && (
-          <p className="text-sm font-medium text-slate-300">
-            {completedCount} of {plan.milestones.length} complete
-          </p>
-        )}
+        <div className="flex items-center gap-3">
+          {plan.milestones.length > 0 && (
+            <p className="text-sm font-medium text-slate-300">
+              {completedCount} of {plan.milestones.length} complete
+            </p>
+          )}
+          {plan.milestones.length > 0 && (
+            <button
+              type="button"
+              onClick={handleDownload}
+              className="rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-200 hover:border-indigo-400"
+            >
+              Download CSV
+            </button>
+          )}
+        </div>
       </div>
 
       {plan.milestones.length > 0 ? (
