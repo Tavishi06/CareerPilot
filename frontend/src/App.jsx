@@ -386,6 +386,11 @@ export default function App() {
           />
         )}
 
+        <InterviewHistory
+          sessions={interviewHistory.sessions}
+          error={interviewHistory.error}
+        />
+
         <section className="mt-10 rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
@@ -690,6 +695,150 @@ function MockInterview({ skills, onComplete, historyCount, historyError }) {
           >
             Practice again
           </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function InterviewHistory({ sessions, error }) {
+  const scoreTotal = sessions.reduce(
+    (total, session) => total + session.averageScore,
+    0
+  );
+  const averageScore =
+    sessions.length > 0 ? Math.round(scoreTotal / sessions.length) : 0;
+  const skillScores = new Map();
+
+  for (const session of sessions) {
+    for (const result of session.results) {
+      const current = skillScores.get(result.skill) || { total: 0, count: 0 };
+      skillScores.set(result.skill, {
+        total: current.total + result.score,
+        count: current.count + 1,
+      });
+    }
+  }
+
+  const practiceAreas = [...skillScores.entries()]
+    .map(([skill, scores]) => ({
+      skill,
+      average: Math.round(scores.total / scores.count),
+      attempts: scores.count,
+    }))
+    .sort((left, right) => left.average - right.average)
+    .slice(0, 5);
+
+  return (
+    <section
+      aria-labelledby="interview-history-heading"
+      className="mt-10 rounded-2xl border border-slate-800 bg-slate-900/60 p-6 md:p-8"
+    >
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-wide text-indigo-300">
+            Progress
+          </p>
+          <h3 id="interview-history-heading" className="mt-2 text-2xl font-bold">
+            Interview history
+          </h3>
+          <p className="mt-2 text-sm text-slate-400">
+            Saved locally in this browser · up to 20 recent sessions
+          </p>
+        </div>
+        {sessions.length > 0 && (
+          <div className="rounded-xl border border-slate-800 bg-[#0b1020] px-4 py-3">
+            <p className="text-xs text-slate-400">Average session coverage</p>
+            <p className="mt-1 text-2xl font-bold text-indigo-300">
+              {averageScore}%
+            </p>
+          </div>
+        )}
+      </div>
+
+      {error && (
+        <p role="status" className="mt-5 rounded-xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-200">
+          {error}
+        </p>
+      )}
+
+      {sessions.length === 0 ? (
+        <p className="mt-6 rounded-xl border border-dashed border-slate-700 p-5 text-sm leading-6 text-slate-400">
+          Completed mock interviews will appear here with their rubric scores.
+        </p>
+      ) : (
+        <div className="mt-6 grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
+          <div>
+            <h4 className="font-semibold text-slate-200">
+              Recent practice areas
+            </h4>
+            <p className="mt-1 text-xs leading-5 text-slate-500">
+              Skills with the lowest recent rubric coverage. These scores are
+              practice signals, not an assessment of overall ability.
+            </p>
+            <ul className="mt-4 space-y-3">
+              {practiceAreas.map((area) => (
+                <li
+                  key={area.skill}
+                  className="flex items-center justify-between gap-4 text-sm"
+                >
+                  <span className="text-slate-300">
+                    {area.skill}
+                    <span className="ml-2 text-xs text-slate-500">
+                      ({area.attempts} {area.attempts === 1 ? "answer" : "answers"})
+                    </span>
+                  </span>
+                  <span className="font-semibold text-slate-200">
+                    {area.average}%
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="font-semibold text-slate-200">Recent sessions</h4>
+            <ol className="mt-3 space-y-3">
+              {sessions.slice(0, 10).map((session) => (
+                <li
+                  key={session.id}
+                  className="rounded-xl border border-slate-800 bg-[#0b1020] p-4"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <time
+                      dateTime={session.completedAt}
+                      className="text-sm text-slate-300"
+                    >
+                      {new Date(session.completedAt).toLocaleString()}
+                    </time>
+                    <span className="text-sm font-semibold text-indigo-300">
+                      {session.averageScore}% average
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {session.results.length}{" "}
+                    {session.results.length === 1 ? "question" : "questions"}
+                  </p>
+                  <details className="mt-3">
+                    <summary className="cursor-pointer text-xs font-medium text-slate-400 hover:text-slate-200">
+                      View skill scores
+                    </summary>
+                    <ul className="mt-2 space-y-1">
+                      {session.results.map((result) => (
+                        <li
+                          key={`${session.id}-${result.questionId}`}
+                          className="flex justify-between gap-4 text-xs text-slate-400"
+                        >
+                          <span>{result.skill}</span>
+                          <span>{result.score}%</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                </li>
+              ))}
+            </ol>
+          </div>
         </div>
       )}
     </section>
