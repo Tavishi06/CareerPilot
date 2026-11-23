@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
 from app.api.routes.analysis import router as analysis_router
 from app.api.routes.health import router as health_router
+from app.api.routes.learning_plan import router as learning_plan_router
 from app.api.routes.resume import router as resume_router
 
 
@@ -43,6 +44,11 @@ app.include_router(
 
 app.include_router(
     resume_router,
+    prefix="/api/v1"
+)
+
+app.include_router(
+    learning_plan_router,
     prefix="/api/v1"
 )
 
