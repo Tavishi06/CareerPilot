@@ -13,6 +13,7 @@ export default function App() {
   const [resumeExtractError, setResumeExtractError] = useState("");
   const [resumeText, setResumeText] = useState("");
   const [jobDescription, setJobDescription] = useState("");
+  const [weeklyHours, setWeeklyHours] = useState(5);
   const [analysis, setAnalysis] = useState(null);
   const [analysisStatus, setAnalysisStatus] = useState("idle");
   const [analysisError, setAnalysisError] = useState("");
@@ -89,6 +90,7 @@ export default function App() {
         body: JSON.stringify({
           resume_text: resumeText,
           job_description: jobDescription,
+          weekly_hours: weeklyHours,
         }),
       });
       const data = await response.json();
@@ -230,6 +232,26 @@ export default function App() {
               placeholder="Paste the job description here..."
               className="min-h-40 w-full resize-y rounded-xl border border-slate-700 bg-[#0b1020] p-4 text-sm leading-6 text-slate-100 outline-none placeholder:text-slate-500 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20"
             />
+
+            <label
+              htmlFor="weekly-hours"
+              className="mb-2 mt-5 block text-sm font-medium text-slate-200"
+            >
+              Time available for learning each week
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                id="weekly-hours"
+                type="number"
+                min="1"
+                max="40"
+                required
+                value={weeklyHours}
+                onChange={(event) => setWeeklyHours(Number(event.target.value))}
+                className="w-24 rounded-lg border border-slate-700 bg-[#0b1020] px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20"
+              />
+              <span className="text-sm text-slate-400">hours per week</span>
+            </div>
 
             <button
               type="submit"
