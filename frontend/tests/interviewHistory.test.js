@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   createInterviewSession,
+  clearInterviewHistory,
   INTERVIEW_HISTORY_STORAGE_KEY,
   MAX_SAVED_INTERVIEWS,
   readInterviewHistory,
@@ -19,6 +20,10 @@ function createStorage(initialValue = null) {
     setItem(key, nextValue) {
       assert.equal(key, INTERVIEW_HISTORY_STORAGE_KEY);
       value = nextValue;
+    },
+    removeItem(key) {
+      assert.equal(key, INTERVIEW_HISTORY_STORAGE_KEY);
+      value = null;
     },
   };
 }
@@ -95,4 +100,12 @@ test("saves only the most recent bounded number of sessions", () => {
   assert.equal(saved.length, MAX_SAVED_INTERVIEWS);
   assert.equal(readInterviewHistory(storage).sessions[0].id, "session-0");
   assert.equal(readInterviewHistory(storage).sessions.at(-1).id, "session-19");
+});
+
+test("clears saved interview history from browser storage", () => {
+  const storage = createStorage(JSON.stringify([makeSession("one")]));
+
+  clearInterviewHistory(storage);
+
+  assert.deepEqual(readInterviewHistory(storage), { sessions: [], error: "" });
 });

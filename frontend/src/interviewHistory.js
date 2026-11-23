@@ -102,3 +102,7 @@ export function saveInterviewHistory(storage, sessions) {
   );
   return recentSessions;
 }
+
+export function clearInterviewHistory(storage) {
+  storage.removeItem(INTERVIEW_HISTORY_STORAGE_KEY);
+}

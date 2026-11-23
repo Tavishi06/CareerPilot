@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  clearInterviewHistory as clearStoredInterviewHistory,
   createInterviewSession,
   MAX_SAVED_INTERVIEWS,
   readInterviewHistory,
@@ -161,6 +162,22 @@ export default function App() {
         sessions,
         error: "Interview results could not be saved in this browser.",
       });
+    }
+  };
+
+  const clearInterviewSessionHistory = () => {
+    if (!window.confirm("Clear all saved mock interview history from this browser?")) {
+      return;
+    }
+
+    try {
+      clearStoredInterviewHistory(window.localStorage);
+      setInterviewHistory({ sessions: [], error: "" });
+    } catch {
+      setInterviewHistory((current) => ({
+        ...current,
+        error: "Interview history could not be cleared from this browser.",
+      }));
     }
   };
 
@@ -389,6 +406,7 @@ export default function App() {
         <InterviewHistory
           sessions={interviewHistory.sessions}
           error={interviewHistory.error}
+          onClear={clearInterviewSessionHistory}
         />
 
         <section className="mt-10 rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
@@ -701,7 +719,7 @@ function MockInterview({ skills, onComplete, historyCount, historyError }) {
   );
 }
 
-function InterviewHistory({ sessions, error }) {
+function InterviewHistory({ sessions, error, onClear }) {
   const scoreTotal = sessions.reduce(
     (total, session) => total + session.averageScore,
     0
@@ -747,11 +765,20 @@ function InterviewHistory({ sessions, error }) {
           </p>
         </div>
         {sessions.length > 0 && (
-          <div className="rounded-xl border border-slate-800 bg-[#0b1020] px-4 py-3">
-            <p className="text-xs text-slate-400">Average session coverage</p>
-            <p className="mt-1 text-2xl font-bold text-indigo-300">
-              {averageScore}%
-            </p>
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl border border-slate-800 bg-[#0b1020] px-4 py-3">
+              <p className="text-xs text-slate-400">Average session coverage</p>
+              <p className="mt-1 text-2xl font-bold text-indigo-300">
+                {averageScore}%
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClear}
+              className="rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-300 hover:border-red-400 hover:text-red-200"
+            >
+              Clear history
+            </button>
           </div>
         )}
       </div>
