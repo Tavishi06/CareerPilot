@@ -78,8 +78,11 @@ provided skill order. Submit an answer to
 `POST /api/v1/mock-interview/evaluate` with its `question_id` and `answer` to
 receive rubric coverage and feedback. Evaluation is deterministic keyword
 matching against published rubric concepts; it is not AI grading or a measure
-of a candidate's overall ability. Interview answers are not persisted by the
-backend.
+of a candidate's overall ability. The frontend keeps the most recent 20
+completed-session score summaries in browser local storage (without saving
+answer text), shows average rubric coverage and recent practice areas, and
+provides a confirmation-protected clear-history action. History is local to one
+browser and is not synced between devices or users.
 
 Resume PDFs can be uploaded to `POST /api/v1/resume/extract` as multipart form
 data using the `file` field. The endpoint returns extracted selectable text,
