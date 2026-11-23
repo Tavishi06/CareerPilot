@@ -1,4 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
+import {
+  createInterviewSession,
+  MAX_SAVED_INTERVIEWS,
+  readInterviewHistory,
+  saveInterviewHistory as persistInterviewHistory,
+} from "./interviewHistory.js";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
@@ -20,6 +26,9 @@ export default function App() {
   const [analysisError, setAnalysisError] = useState("");
   const [progress, setProgress] = useState(loadProgress);
   const completedSkills = progress.skills;
+  const [interviewHistory, setInterviewHistory] = useState(
+    loadSavedInterviewHistory
+  );
 
   const checkApi = useCallback(async () => {
     setApiStatus("checking");
@@ -130,6 +139,27 @@ export default function App() {
       setProgress({
         skills: nextSkills,
         error: "Progress could not be saved in this browser.",
+      });
+    }
+  };
+
+  const recordInterviewSession = (evaluations) => {
+    let sessions = interviewHistory.sessions;
+    try {
+      const session = createInterviewSession(evaluations, {
+        id: window.crypto.randomUUID(),
+        completedAt: new Date().toISOString(),
+      });
+      sessions = [session, ...sessions].slice(0, MAX_SAVED_INTERVIEWS);
+      const savedSessions = persistInterviewHistory(
+        window.localStorage,
+        sessions
+      );
+      setInterviewHistory({ sessions: savedSessions, error: "" });
+    } catch {
+      setInterviewHistory({
+        sessions,
+        error: "Interview results could not be saved in this browser.",
       });
     }
   };
@@ -347,7 +377,14 @@ export default function App() {
           </section>
         </section>
 
-        {analysis && <MockInterview skills={analysis.required_skills} />}
+        {analysis && (
+          <MockInterview
+            skills={analysis.required_skills}
+            onComplete={recordInterviewSession}
+            historyCount={interviewHistory.sessions.length}
+            historyError={interviewHistory.error}
+          />
+        )}
 
         <section className="mt-10 rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -415,7 +452,7 @@ function SkillList({ title, skills }) {
   );
 }
 
-function MockInterview({ skills }) {
+function MockInterview({ skills, onComplete, historyCount, historyError }) {
   const [status, setStatus] = useState("idle");
   const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -491,6 +528,7 @@ function MockInterview({ skills }) {
   const continueInterview = () => {
     setAnswer("");
     if (currentIndex === questions.length - 1) {
+      onComplete(evaluations);
       setStatus("complete");
       return;
     }
@@ -624,6 +662,13 @@ function MockInterview({ skills }) {
           <p className="mt-2 text-sm text-slate-300">
             Average rubric coverage: <strong>{averageScore}%</strong> across{" "}
             {evaluations.length} questions.
+          </p>
+          <p className="mt-2 text-xs text-slate-400">
+            {historyError
+              ? historyError
+              : `${historyCount} completed interview ${
+                  historyCount === 1 ? "session" : "sessions"
+                } saved in this browser.`}
           </p>
           <ol className="mt-4 space-y-2">
             {evaluations.map((result, index) => (
@@ -826,6 +871,17 @@ function loadProgress() {
     return {
       skills: new Set(),
       error: "Saved progress could not be loaded from this browser.",
+    };
+  }
+}
+
+function loadSavedInterviewHistory() {
+  try {
+    return readInterviewHistory(window.localStorage);
+  } catch {
+    return {
+      sessions: [],
+      error: "Saved interview history could not be loaded from this browser.",
     };
   }
 }
