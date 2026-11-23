@@ -39,8 +39,11 @@ Real Job Application Intelligence:
 The first working feature compares resume text with a job description. You can
 paste the resume text directly or upload a PDF and review the extracted text.
 The analysis identifies supported skills, shows matches and gaps, and
-calculates a keyword-based match percentage. This is a transparent baseline,
-not an AI assessment or a substitute for reviewing the source documents.
+calculates a keyword-based match percentage. For identified skill gaps, it
+creates a prerequisite-aware learning roadmap with curated resources, estimated
+study time, and target weeks based on your weekly availability. This is a
+transparent baseline, not an AI assessment or a substitute for reviewing the
+source documents.
 
 Supported skill terms currently include Python, SQL, machine learning,
 generative AI, RAG, FastAPI, React, Git, Docker, AWS, statistics, communication,
@@ -59,8 +62,15 @@ The API runs at `http://127.0.0.1:8000`. Interactive docs are available at
 `http://127.0.0.1:8000/docs`.
 
 The analysis endpoint is `POST /api/v1/analyze`. It accepts `resume_text` and
-`job_description` strings and returns detected skills, matched skills, gaps,
-and a percentage based on supported skills found in the job description.
+`job_description` strings, plus an optional `weekly_hours` value from 1 to 40
+(default: 5). It returns detected skills, matched skills, gaps, a percentage
+based on supported skills found in the job description, and a learning plan.
+
+The standalone `POST /api/v1/learning-plan` endpoint accepts a `missing_skills`
+array and optional `weekly_hours` value. The frontend displays the roadmap,
+lets you mark milestones complete, and can download it as a CSV. Completion
+state is stored only in your browser's local storage; it is not synced between
+devices or users. Resource durations and target weeks are estimates.
 
 Resume PDFs can be uploaded to `POST /api/v1/resume/extract` as multipart form
 data using the `file` field. The endpoint returns extracted selectable text,
