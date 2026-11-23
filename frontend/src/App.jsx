@@ -347,6 +347,8 @@ export default function App() {
           </section>
         </section>
 
+        {analysis && <MockInterview skills={analysis.required_skills} />}
+
         <section className="mt-10 rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
@@ -410,6 +412,242 @@ function SkillList({ title, skills }) {
         <p className="text-sm text-slate-500">None identified.</p>
       )}
     </div>
+  );
+}
+
+function MockInterview({ skills }) {
+  const [status, setStatus] = useState("idle");
+  const [questions, setQuestions] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [answer, setAnswer] = useState("");
+  const [evaluations, setEvaluations] = useState([]);
+  const [error, setError] = useState("");
+
+  const startInterview = async () => {
+    setStatus("loading");
+    setError("");
+    setQuestions([]);
+    setEvaluations([]);
+    setAnswer("");
+    setCurrentIndex(0);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/mock-interview/questions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ skills }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || `Could not start interview (${response.status}).`);
+      }
+
+      setQuestions(data.questions);
+      setStatus("answering");
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Could not start the mock interview."
+      );
+      setStatus("idle");
+    }
+  };
+
+  const submitAnswer = async (event) => {
+    event.preventDefault();
+    const question = questions[currentIndex];
+    setStatus("evaluating");
+    setError("");
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/mock-interview/evaluate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question_id: question.question_id,
+          answer,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || `Could not evaluate answer (${response.status}).`);
+      }
+
+      setEvaluations((current) => [...current, data]);
+      setStatus("feedback");
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Could not evaluate your answer."
+      );
+      setStatus("answering");
+    }
+  };
+
+  const continueInterview = () => {
+    setAnswer("");
+    if (currentIndex === questions.length - 1) {
+      setStatus("complete");
+      return;
+    }
+
+    setCurrentIndex((index) => index + 1);
+    setStatus("answering");
+  };
+
+  const latestEvaluation = evaluations[evaluations.length - 1];
+  const averageScore =
+    evaluations.length > 0
+      ? Math.round(
+          evaluations.reduce((total, result) => total + result.score, 0) /
+            evaluations.length
+        )
+      : 0;
+
+  return (
+    <section
+      aria-labelledby="interview-heading"
+      className="mt-10 rounded-2xl border border-slate-800 bg-slate-900/60 p-6 md:p-8"
+    >
+      <p className="text-sm font-semibold uppercase tracking-wide text-indigo-300">
+        Practice
+      </p>
+      <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h3 id="interview-heading" className="text-2xl font-bold">
+            Mock interview
+          </h3>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+            Practice up to five questions based on the job skills. Feedback
+            checks a visible concept rubric; it is not an AI judgment.
+          </p>
+        </div>
+        {(status === "idle" || status === "loading") && (
+          <button
+            type="button"
+            onClick={startInterview}
+            disabled={status === "loading"}
+            className="rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-400 disabled:cursor-wait disabled:opacity-50"
+          >
+            {status === "loading" ? "Preparing questions..." : "Start interview"}
+          </button>
+        )}
+      </div>
+
+      {error && (
+        <p role="alert" className="mt-5 rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-200">
+          {error}
+        </p>
+      )}
+
+      {status === "answering" && questions[currentIndex] && (
+        <form onSubmit={submitAnswer} className="mt-6 rounded-xl border border-slate-800 bg-[#0b1020] p-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-indigo-300">
+            Question {currentIndex + 1} of {questions.length} · {questions[currentIndex].skill}
+          </p>
+          <h4 className="mt-3 text-lg font-semibold leading-7 text-slate-100">
+            {questions[currentIndex].prompt}
+          </h4>
+          <label
+            htmlFor="interview-answer"
+            className="mb-2 mt-5 block text-sm font-medium text-slate-200"
+          >
+            Your answer
+          </label>
+          <textarea
+            id="interview-answer"
+            required
+            maxLength={5000}
+            value={answer}
+            onChange={(event) => setAnswer(event.target.value)}
+            placeholder="Explain your approach in your own words..."
+            className="min-h-32 w-full resize-y rounded-xl border border-slate-700 bg-slate-900 p-4 text-sm leading-6 text-slate-100 outline-none placeholder:text-slate-500 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20"
+          />
+          <button
+            type="submit"
+            disabled={status === "evaluating"}
+            className="mt-4 rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-400 disabled:cursor-wait disabled:opacity-50"
+          >
+            {status === "evaluating" ? "Reviewing..." : "Review my answer"}
+          </button>
+        </form>
+      )}
+
+      {status === "evaluating" && (
+        <p role="status" className="mt-5 text-sm text-slate-400">
+          Checking your answer against the question's concept rubric...
+        </p>
+      )}
+
+      {status === "feedback" && latestEvaluation && (
+        <div className="mt-6 rounded-xl border border-indigo-400/20 bg-[#0b1020] p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h4 className="font-semibold text-slate-100">
+              Feedback · {latestEvaluation.skill}
+            </h4>
+            <span className="rounded-full bg-indigo-400/10 px-3 py-1 text-sm font-semibold text-indigo-200">
+              Rubric coverage: {latestEvaluation.score}%
+            </span>
+          </div>
+          <p className="mt-3 text-sm leading-6 text-slate-300">
+            {latestEvaluation.feedback}
+          </p>
+          <SkillList
+            title="Concepts covered"
+            skills={latestEvaluation.matched_concepts}
+          />
+          <div className="mt-4">
+            <SkillList
+              title="Concepts to consider"
+              skills={latestEvaluation.missing_concepts}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={continueInterview}
+            className="mt-5 rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-400"
+          >
+            {currentIndex === questions.length - 1 ? "View summary" : "Next question"}
+          </button>
+        </div>
+      )}
+
+      {status === "complete" && (
+        <div className="mt-6 rounded-xl border border-emerald-400/20 bg-emerald-400/5 p-5">
+          <h4 className="text-lg font-semibold text-emerald-200">
+            Interview practice complete
+          </h4>
+          <p className="mt-2 text-sm text-slate-300">
+            Average rubric coverage: <strong>{averageScore}%</strong> across{" "}
+            {evaluations.length} questions.
+          </p>
+          <ol className="mt-4 space-y-2">
+            {evaluations.map((result, index) => (
+              <li
+                key={result.question_id}
+                className="flex items-center justify-between gap-4 text-sm text-slate-300"
+              >
+                <span>
+                  {index + 1}. {result.skill}
+                </span>
+                <span>{result.score}%</span>
+              </li>
+            ))}
+          </ol>
+          <button
+            type="button"
+            onClick={startInterview}
+            className="mt-5 rounded-lg border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-200 hover:border-indigo-400"
+          >
+            Practice again
+          </button>
+        </div>
+      )}
+    </section>
   );
 }
 
