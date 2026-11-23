@@ -57,3 +57,24 @@ def test_learning_plan_endpoint_rejects_blank_skill_names():
     )
 
     assert response.status_code == 422
+
+
+def test_learning_plan_openapi_documents_response_fields():
+    schemas = client.get("/openapi.json").json()["components"]["schemas"]
+
+    assert set(schemas["LearningPlanResponse"]["properties"]) == {
+        "weekly_hours",
+        "total_hours",
+        "duration_weeks",
+        "milestones",
+    }
+    assert set(schemas["LearningMilestone"]["properties"]) == {
+        "sequence",
+        "skill",
+        "title",
+        "url",
+        "objective",
+        "estimated_hours",
+        "start_week",
+        "target_week",
+    }
