@@ -17,6 +17,7 @@ export default function App() {
   const [analysis, setAnalysis] = useState(null);
   const [analysisStatus, setAnalysisStatus] = useState("idle");
   const [analysisError, setAnalysisError] = useState("");
+  const [completedSkills, setCompletedSkills] = useState(() => new Set());
 
   const checkApi = useCallback(async () => {
     setApiStatus("checking");
@@ -82,6 +83,7 @@ export default function App() {
     setAnalysisStatus("loading");
     setAnalysisError("");
     setAnalysis(null);
+    setCompletedSkills(new Set());
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/v1/analyze`, {
@@ -107,6 +109,18 @@ export default function App() {
       );
       setAnalysisStatus("error");
     }
+  };
+
+  const toggleMilestone = (skill) => {
+    setCompletedSkills((currentSkills) => {
+      const nextSkills = new Set(currentSkills);
+      if (nextSkills.has(skill)) {
+        nextSkills.delete(skill);
+      } else {
+        nextSkills.add(skill);
+      }
+      return nextSkills;
+    });
   };
 
   const isOnline = apiStatus === "online";
@@ -311,7 +325,11 @@ export default function App() {
                 </div>
                 <SkillList title="Matched skills" skills={analysis.matched_skills} />
                 <SkillList title="Skills to build" skills={analysis.missing_skills} />
-                <LearningRoadmap plan={analysis.learning_plan} />
+                <LearningRoadmap
+                  plan={analysis.learning_plan}
+                  completedSkills={completedSkills}
+                  onToggleMilestone={toggleMilestone}
+                />
               </div>
             )}
           </section>
@@ -383,7 +401,11 @@ function SkillList({ title, skills }) {
   );
 }
 
-function LearningRoadmap({ plan }) {
+function LearningRoadmap({ plan, completedSkills, onToggleMilestone }) {
+  const completedCount = plan.milestones.filter((milestone) =>
+    completedSkills.has(milestone.skill)
+  ).length;
+
   return (
     <section aria-labelledby="roadmap-heading" className="border-t border-slate-800 pt-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -397,44 +419,71 @@ function LearningRoadmap({ plan }) {
             hours per week
           </p>
         </div>
+        {plan.milestones.length > 0 && (
+          <p className="text-sm font-medium text-slate-300">
+            {completedCount} of {plan.milestones.length} complete
+          </p>
+        )}
       </div>
 
       {plan.milestones.length > 0 ? (
         <ol className="mt-5 space-y-3">
-          {plan.milestones.map((milestone) => (
-            <li
-              key={milestone.skill}
-              className="rounded-xl border border-slate-800 bg-[#0b1020] p-4"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-indigo-300">
-                    Step {milestone.sequence} ·{" "}
-                    {milestone.start_week === milestone.target_week
-                      ? `Week ${milestone.target_week}`
-                      : `Weeks ${milestone.start_week}-${milestone.target_week}`}
-                  </p>
-                  <h5 className="mt-2 font-semibold text-slate-100">
-                    {milestone.skill}: {milestone.title}
-                  </h5>
-                </div>
-                <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
-                  ~{milestone.estimated_hours} hours
-                </span>
-              </div>
-              <p className="mt-2 text-sm leading-6 text-slate-400">
-                {milestone.objective}
-              </p>
-              <a
-                href={milestone.url}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-3 inline-flex text-sm font-medium text-indigo-300 underline decoration-indigo-300/40 underline-offset-4 hover:text-indigo-200"
+          {plan.milestones.map((milestone) => {
+            const isComplete = completedSkills.has(milestone.skill);
+            return (
+              <li
+                key={milestone.skill}
+                className={`rounded-xl border bg-[#0b1020] p-4 ${
+                  isComplete
+                    ? "border-emerald-400/40"
+                    : "border-slate-800"
+                }`}
               >
-                Open learning resource
-              </a>
-            </li>
-          ))}
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-indigo-300">
+                      Step {milestone.sequence} ·{" "}
+                      {milestone.start_week === milestone.target_week
+                        ? `Week ${milestone.target_week}`
+                        : `Weeks ${milestone.start_week}-${milestone.target_week}`}
+                    </p>
+                    <h5 className="mt-2 font-semibold text-slate-100">
+                      {milestone.skill}: {milestone.title}
+                    </h5>
+                  </div>
+                  <button
+                    type="button"
+                    aria-pressed={isComplete}
+                    aria-label={`Mark ${milestone.skill} ${
+                      isComplete ? "incomplete" : "complete"
+                    }`}
+                    onClick={() => onToggleMilestone(milestone.skill)}
+                    className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${
+                      isComplete
+                        ? "border-emerald-400/40 text-emerald-300"
+                        : "border-slate-700 text-slate-300 hover:border-indigo-400"
+                    }`}
+                  >
+                    {isComplete ? "Completed" : "Mark complete"}
+                  </button>
+                  <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
+                    ~{milestone.estimated_hours} hours
+                  </span>
+                </div>
+                <p className="mt-2 text-sm leading-6 text-slate-400">
+                  {milestone.objective}
+                </p>
+                <a
+                  href={milestone.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex text-sm font-medium text-indigo-300 underline decoration-indigo-300/40 underline-offset-4 hover:text-indigo-200"
+                >
+                  Open learning resource
+                </a>
+              </li>
+            );
+          })}
         </ol>
       ) : (
         <p className="mt-4 rounded-xl border border-emerald-400/20 bg-emerald-400/5 p-4 text-sm leading-6 text-emerald-200">
