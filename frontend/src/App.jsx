@@ -6,6 +6,7 @@ import {
   readInterviewHistory,
   saveInterviewHistory as persistInterviewHistory,
 } from "./interviewHistory.js";
+import ApplicationTracker from "./ApplicationTracker.jsx";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
@@ -408,6 +409,8 @@ export default function App() {
           error={interviewHistory.error}
           onClear={clearInterviewSessionHistory}
         />
+
+        <ApplicationTracker apiBaseUrl={API_BASE_URL} />
 
         <section className="mt-10 rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
           <div className="flex flex-wrap items-center justify-between gap-4">
