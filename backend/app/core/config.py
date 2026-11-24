@@ -1,6 +1,12 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+DEFAULT_DATABASE_PATH = (
+    Path(__file__).resolve().parents[2] / "data" / "careerpilot.db"
+)
 
 
 class Settings(BaseSettings):
@@ -10,6 +16,7 @@ class Settings(BaseSettings):
     environment: str = "development"
 
     frontend_origin: str = "http://localhost:5173"
+    database_path: str = str(DEFAULT_DATABASE_PATH)
 
     model_config = SettingsConfigDict(
         env_file=".env",
