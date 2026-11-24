@@ -33,6 +33,8 @@ export default function ApplicationTracker({ apiBaseUrl }) {
   const [applications, setApplications] = useState([]);
   const [statusFilter, setStatusFilter] = useState("");
   const [form, setForm] = useState(EMPTY_FORM);
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState(EMPTY_FORM);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
@@ -116,6 +118,47 @@ export default function ApplicationTracker({ apiBaseUrl }) {
         requestError instanceof Error
           ? requestError.message
           : "Application status could not be updated."
+      );
+    }
+  };
+
+  const startEditing = (application) => {
+    setEditingId(application.id);
+    setEditForm({
+      company: application.company,
+      role_title: application.role_title,
+      location: application.location || "",
+      job_url: application.job_url || "",
+      applied_date: application.applied_date || "",
+      status: application.status,
+      notes: application.notes || "",
+    });
+    setError("");
+    setNotice("");
+  };
+
+  const handleSaveEdit = async (event, application) => {
+    event.preventDefault();
+    setError("");
+    setNotice("");
+
+    try {
+      const updated = await updateApplication(apiBaseUrl, application.id, {
+        ...editForm,
+        location: editForm.location || null,
+        job_url: editForm.job_url || null,
+        applied_date: editForm.applied_date || null,
+      });
+      setApplications((current) =>
+        current.map((item) => (item.id === updated.id ? updated : item))
+      );
+      setEditingId(null);
+      setNotice("Application details updated.");
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Application details could not be updated."
       );
     }
   };
@@ -365,6 +408,162 @@ export default function ApplicationTracker({ apiBaseUrl }) {
                   key={application.id}
                   className="rounded-xl border border-slate-800 bg-[#0b1020] p-4"
                 >
+                  {editingId === application.id ? (
+                    <form onSubmit={(event) => handleSaveEdit(event, application)}>
+                      <h5 className="font-semibold text-slate-100">
+                        Edit application
+                      </h5>
+                      <label
+                        htmlFor={`edit-company-${application.id}`}
+                        className="form-label"
+                      >
+                        Company
+                      </label>
+                      <input
+                        id={`edit-company-${application.id}`}
+                        required
+                        maxLength={120}
+                        value={editForm.company}
+                        onChange={(event) =>
+                          setEditForm((current) => ({
+                            ...current,
+                            company: event.target.value,
+                          }))
+                        }
+                        className="form-control"
+                      />
+                      <label
+                        htmlFor={`edit-role-${application.id}`}
+                        className="form-label"
+                      >
+                        Role title
+                      </label>
+                      <input
+                        id={`edit-role-${application.id}`}
+                        required
+                        maxLength={160}
+                        value={editForm.role_title}
+                        onChange={(event) =>
+                          setEditForm((current) => ({
+                            ...current,
+                            role_title: event.target.value,
+                          }))
+                        }
+                        className="form-control"
+                      />
+                      <label
+                        htmlFor={`edit-location-${application.id}`}
+                        className="form-label"
+                      >
+                        Location
+                      </label>
+                      <input
+                        id={`edit-location-${application.id}`}
+                        maxLength={160}
+                        value={editForm.location}
+                        onChange={(event) =>
+                          setEditForm((current) => ({
+                            ...current,
+                            location: event.target.value,
+                          }))
+                        }
+                        className="form-control"
+                      />
+                      <label
+                        htmlFor={`edit-url-${application.id}`}
+                        className="form-label"
+                      >
+                        Job link
+                      </label>
+                      <input
+                        id={`edit-url-${application.id}`}
+                        type="url"
+                        value={editForm.job_url}
+                        onChange={(event) =>
+                          setEditForm((current) => ({
+                            ...current,
+                            job_url: event.target.value,
+                          }))
+                        }
+                        className="form-control"
+                      />
+                      <label
+                        htmlFor={`edit-date-${application.id}`}
+                        className="form-label"
+                      >
+                        Applied date
+                      </label>
+                      <input
+                        id={`edit-date-${application.id}`}
+                        type="date"
+                        value={editForm.applied_date}
+                        onChange={(event) =>
+                          setEditForm((current) => ({
+                            ...current,
+                            applied_date: event.target.value,
+                          }))
+                        }
+                        className="form-control"
+                      />
+                      <label
+                        htmlFor={`edit-status-${application.id}`}
+                        className="form-label"
+                      >
+                        Status
+                      </label>
+                      <select
+                        id={`edit-status-${application.id}`}
+                        value={editForm.status}
+                        onChange={(event) =>
+                          setEditForm((current) => ({
+                            ...current,
+                            status: event.target.value,
+                          }))
+                        }
+                        className="form-control"
+                      >
+                        {APPLICATION_STATUSES.map((status) => (
+                          <option key={status} value={status}>
+                            {formatStatus(status)}
+                          </option>
+                        ))}
+                      </select>
+                      <label
+                        htmlFor={`edit-notes-${application.id}`}
+                        className="form-label"
+                      >
+                        Notes
+                      </label>
+                      <textarea
+                        id={`edit-notes-${application.id}`}
+                        maxLength={5000}
+                        value={editForm.notes}
+                        onChange={(event) =>
+                          setEditForm((current) => ({
+                            ...current,
+                            notes: event.target.value,
+                          }))
+                        }
+                        className="form-control min-h-24 resize-y"
+                      />
+                      <div className="mt-4 flex gap-3">
+                        <button
+                          type="submit"
+                          className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400"
+                        >
+                          Save changes
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingId(null)}
+                          className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 hover:border-slate-500"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-xs font-semibold uppercase tracking-wide text-indigo-300">
@@ -417,6 +616,13 @@ export default function ApplicationTracker({ apiBaseUrl }) {
                       )}
                       <button
                         type="button"
+                        onClick={() => startEditing(application)}
+                        className="font-medium text-slate-300 hover:text-white"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => handleDelete(application)}
                         className="font-medium text-red-300 hover:text-red-200"
                       >
@@ -429,6 +635,8 @@ export default function ApplicationTracker({ apiBaseUrl }) {
                     <p className="mt-3 whitespace-pre-wrap border-t border-slate-800 pt-3 text-sm leading-6 text-slate-400">
                       {application.notes}
                     </p>
+                  )}
+                    </>
                   )}
                 </li>
               ))}
