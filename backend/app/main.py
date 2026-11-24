@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
+from app.api.routes.applications import router as applications_router
 from app.api.routes.analysis import router as analysis_router
 from app.api.routes.health import router as health_router
 from app.api.routes.interview import router as interview_router
@@ -40,6 +41,11 @@ app.include_router(
 
 app.include_router(
     analysis_router,
+    prefix="/api/v1"
+)
+
+app.include_router(
+    applications_router,
     prefix="/api/v1"
 )
 
