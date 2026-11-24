@@ -43,7 +43,7 @@ export default function ApplicationTracker({ apiBaseUrl }) {
     setError("");
 
     try {
-      const data = await listApplications(apiBaseUrl, statusFilter);
+      const data = await listApplications(apiBaseUrl);
       setApplications(data);
     } catch (requestError) {
       setError(
@@ -54,7 +54,7 @@ export default function ApplicationTracker({ apiBaseUrl }) {
     } finally {
       setIsLoading(false);
     }
-  }, [apiBaseUrl, statusFilter]);
+  }, [apiBaseUrl]);
 
   useEffect(() => {
     const initialLoad = window.setTimeout(refreshApplications, 0);
@@ -108,9 +108,7 @@ export default function ApplicationTracker({ apiBaseUrl }) {
         notes: application.notes,
       });
       setApplications((current) =>
-        statusFilter
-          ? current.filter((item) => item.id !== application.id)
-          : current.map((item) => (item.id === updated.id ? updated : item))
+        current.map((item) => (item.id === updated.id ? updated : item))
       );
       setNotice(`Status updated to ${formatStatus(nextStatus)}.`);
     } catch (requestError) {
@@ -147,6 +145,15 @@ export default function ApplicationTracker({ apiBaseUrl }) {
       );
     }
   };
+
+  const visibleApplications = statusFilter
+    ? applications.filter((application) => application.status === statusFilter)
+    : applications;
+  const applicationCounts = APPLICATION_STATUSES.map((status) => ({
+    status,
+    count: applications.filter((application) => application.status === status)
+      .length,
+  }));
 
   return (
     <section
@@ -199,6 +206,21 @@ export default function ApplicationTracker({ apiBaseUrl }) {
           {notice}
         </p>
       )}
+
+      <div
+        aria-label="Application status summary"
+        className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6"
+      >
+        {applicationCounts.map(({ status, count }) => (
+          <div
+            key={status}
+            className="rounded-xl border border-slate-800 bg-[#0b1020] p-3"
+          >
+            <p className="text-xs text-slate-400">{formatStatus(status)}</p>
+            <p className="mt-1 text-xl font-bold text-slate-100">{count}</p>
+          </div>
+        ))}
+      </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
         <form
@@ -330,7 +352,7 @@ export default function ApplicationTracker({ apiBaseUrl }) {
             <p role="status" className="mt-4 text-sm text-slate-400">
               Loading applications...
             </p>
-          ) : applications.length === 0 ? (
+          ) : visibleApplications.length === 0 ? (
             <p className="mt-4 rounded-xl border border-dashed border-slate-700 p-5 text-sm leading-6 text-slate-400">
               {statusFilter
                 ? `No ${formatStatus(statusFilter).toLowerCase()} applications found.`
@@ -338,7 +360,7 @@ export default function ApplicationTracker({ apiBaseUrl }) {
             </p>
           ) : (
             <ul className="mt-4 space-y-3">
-              {applications.map((application) => (
+              {visibleApplications.map((application) => (
                 <li
                   key={application.id}
                   className="rounded-xl border border-slate-800 bg-[#0b1020] p-4"
