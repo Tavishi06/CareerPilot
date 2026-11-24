@@ -72,6 +72,19 @@ lets you mark milestones complete, and can download it as a CSV. Completion
 state is stored only in your browser's local storage; it is not synced between
 devices or users. Resource durations and target weeks are estimates.
 
+Job applications can be managed at `/api/v1/applications`: create records with
+`POST`, list them with `GET` (optionally filter with `?status=applied`), read
+one with `GET /{id}`, replace it with `PUT /{id}`, or delete it with
+`DELETE /{id}`. Supported statuses are `wishlist`, `applied`, `interviewing`,
+`offer`, `rejected`, and `withdrawn`. The tracker stores company, role,
+location, job link, applied date, status, and notes in SQLite. By default the
+database is `backend/data/careerpilot.db`; set `DATABASE_PATH` to choose another
+path. Database files are excluded from Git.
+
+The tracker currently has no user accounts or authentication and is intended
+for local, single-user development. Do not expose this API publicly or store
+sensitive personal information in it.
+
 Mock interview questions are available at `POST /api/v1/mock-interview/questions`
 with a `skills` array. The endpoint returns up to five curated questions in the
 provided skill order. Submit an answer to
@@ -107,6 +120,7 @@ cd backend
 python -m pytest -v
 
 cd ../frontend
+npm test
 npm run build
 npm run lint
 ```
