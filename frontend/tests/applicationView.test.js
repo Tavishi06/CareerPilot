@@ -86,6 +86,18 @@ test("sorts applied dates newest first and puts missing dates last", () => {
   );
 });
 
+test("sorts follow-up dates soonest first and puts unscheduled records last", () => {
+  const withDates = applications.map((application, index) => ({
+    ...application,
+    follow_up_date: ["2026-11-27", null, "2026-11-26"][index],
+  }));
+
+  assert.deepEqual(
+    sortApplications(withDates, "follow_up_soonest").map((item) => item.id),
+    ["three", "one", "two"]
+  );
+});
+
 test("rejects unknown sort options", () => {
   assert.throws(() => sortApplications(applications, "random"), RangeError);
 });

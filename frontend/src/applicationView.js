@@ -5,6 +5,9 @@ const APPLICATION_SORTS = {
   applied_newest: (left, right) =>
     compareNewestDates(left.applied_date, right.applied_date) ||
     left.company.localeCompare(right.company),
+  follow_up_soonest: (left, right) =>
+    compareDatesAscending(left.follow_up_date, right.follow_up_date) ||
+    left.company.localeCompare(right.company),
   company_az: (left, right) =>
     left.company.localeCompare(right.company) ||
     left.role_title.localeCompare(right.role_title),
@@ -21,6 +24,19 @@ function compareNewestDates(left, right) {
     return -1;
   }
   return right.localeCompare(left);
+}
+
+function compareDatesAscending(left, right) {
+  if (!left && !right) {
+    return 0;
+  }
+  if (!left) {
+    return 1;
+  }
+  if (!right) {
+    return -1;
+  }
+  return left.localeCompare(right);
 }
 
 export function filterApplications(applications, { query = "", status = "" } = {}) {
