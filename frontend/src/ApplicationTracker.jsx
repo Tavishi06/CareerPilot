@@ -5,6 +5,10 @@ import {
   listApplications,
   updateApplication,
 } from "./applicationsApi.js";
+import {
+  filterApplications,
+  sortApplications,
+} from "./applicationView.js";
 
 const APPLICATION_STATUSES = [
   "wishlist",
@@ -32,6 +36,8 @@ function formatStatus(status) {
 export default function ApplicationTracker({ apiBaseUrl }) {
   const [applications, setApplications] = useState([]);
   const [statusFilter, setStatusFilter] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("recently_updated");
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState(EMPTY_FORM);
@@ -189,9 +195,13 @@ export default function ApplicationTracker({ apiBaseUrl }) {
     }
   };
 
-  const visibleApplications = statusFilter
-    ? applications.filter((application) => application.status === statusFilter)
-    : applications;
+  const visibleApplications = sortApplications(
+    filterApplications(applications, {
+      query: searchQuery,
+      status: statusFilter,
+    }),
+    sortBy
+  );
   const applicationCounts = APPLICATION_STATUSES.map((status) => ({
     status,
     count: applications.filter((application) => application.status === status)
@@ -216,21 +226,6 @@ export default function ApplicationTracker({ apiBaseUrl }) {
             follow-up notes together.
           </p>
         </div>
-        <label className="text-sm text-slate-300">
-          Filter by status
-          <select
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-            className="ml-2 rounded-lg border border-slate-700 bg-[#0b1020] px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-400"
-          >
-            <option value="">All statuses</option>
-            {APPLICATION_STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {formatStatus(status)}
-              </option>
-            ))}
-          </select>
-        </label>
       </div>
 
       {error && (
@@ -379,16 +374,55 @@ export default function ApplicationTracker({ apiBaseUrl }) {
         </form>
 
         <div>
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-end justify-between gap-3">
             <h4 className="font-semibold text-slate-100">Your opportunities</h4>
-            <button
-              type="button"
-              onClick={refreshApplications}
-              disabled={isLoading}
-              className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:border-indigo-400 disabled:opacity-50"
-            >
-              Refresh
-            </button>
+            <div className="flex flex-wrap items-end gap-3">
+              <label className="text-xs text-slate-400">
+                Search
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Company, role, notes..."
+                  className="mt-1 block w-48 rounded-lg border border-slate-700 bg-[#0b1020] px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-indigo-400"
+                />
+              </label>
+              <label className="text-xs text-slate-400">
+                Status
+                <select
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value)}
+                  className="mt-1 block rounded-lg border border-slate-700 bg-[#0b1020] px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-400"
+                >
+                  <option value="">All statuses</option>
+                  {APPLICATION_STATUSES.map((status) => (
+                    <option key={status} value={status}>
+                      {formatStatus(status)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-xs text-slate-400">
+                Sort
+                <select
+                  value={sortBy}
+                  onChange={(event) => setSortBy(event.target.value)}
+                  className="mt-1 block rounded-lg border border-slate-700 bg-[#0b1020] px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-400"
+                >
+                  <option value="recently_updated">Recently updated</option>
+                  <option value="applied_newest">Applied date</option>
+                  <option value="company_az">Company A-Z</option>
+                </select>
+              </label>
+              <button
+                type="button"
+                onClick={refreshApplications}
+                disabled={isLoading}
+                className="rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-300 hover:border-indigo-400 disabled:opacity-50"
+              >
+                Refresh
+              </button>
+            </div>
           </div>
 
           {isLoading ? (
@@ -397,9 +431,9 @@ export default function ApplicationTracker({ apiBaseUrl }) {
             </p>
           ) : visibleApplications.length === 0 ? (
             <p className="mt-4 rounded-xl border border-dashed border-slate-700 p-5 text-sm leading-6 text-slate-400">
-              {statusFilter
-                ? `No ${formatStatus(statusFilter).toLowerCase()} applications found.`
-                : "No applications yet. Add a role to start tracking your search."}
+              {applications.length === 0
+                ? "No applications yet. Add a role to start tracking your search."
+                : "No applications match these search filters."}
             </p>
           ) : (
             <ul className="mt-4 space-y-3">
