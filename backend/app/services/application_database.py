@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS applications (
     location TEXT,
     job_url TEXT,
     applied_date TEXT,
+    follow_up_date TEXT,
     status TEXT NOT NULL,
     notes TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL,
@@ -28,5 +29,13 @@ def connect_database(database_path: str | Path | None = None) -> sqlite3.Connect
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA busy_timeout = 10000")
     connection.execute(APPLICATIONS_SCHEMA)
+    columns = {
+        row["name"]
+        for row in connection.execute("PRAGMA table_info(applications)")
+    }
+    if "follow_up_date" not in columns:
+        connection.execute(
+            "ALTER TABLE applications ADD COLUMN follow_up_date TEXT"
+        )
     connection.commit()
     return connection
