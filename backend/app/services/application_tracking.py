@@ -19,6 +19,7 @@ APPLICATION_FIELDS = (
     "location",
     "job_url",
     "applied_date",
+    "follow_up_date",
     "status",
     "notes",
 )
@@ -65,10 +66,10 @@ def create_application(
     connection.execute(
         """
         INSERT INTO applications (
-            id, company, role_title, location, job_url, applied_date,
+            id, company, role_title, location, job_url, applied_date, follow_up_date,
             status, notes, created_at, updated_at
         ) VALUES (
-            :id, :company, :role_title, :location, :job_url, :applied_date,
+            :id, :company, :role_title, :location, :job_url, :applied_date, :follow_up_date,
             :status, :notes, :created_at, :updated_at
         )
         """,
@@ -96,6 +97,7 @@ def update_application(
             location = :location,
             job_url = :job_url,
             applied_date = :applied_date,
+            follow_up_date = :follow_up_date,
             status = :status,
             notes = :notes,
             updated_at = :updated_at

@@ -27,6 +27,7 @@ def application_fields(**updates):
         "location": None,
         "job_url": None,
         "applied_date": None,
+        "follow_up_date": None,
         "status": "wishlist",
         "notes": "",
     }
@@ -71,12 +72,17 @@ def test_update_application_changes_fields_and_updated_timestamp(connection):
     updated = update_application(
         connection,
         created["id"],
-        application_fields(status="applied", notes="Sent application"),
+        application_fields(
+            status="applied",
+            notes="Sent application",
+            follow_up_date="2026-12-01",
+        ),
     )
 
     assert updated is not None
     assert updated["status"] == "applied"
     assert updated["notes"] == "Sent application"
+    assert updated["follow_up_date"] == "2026-12-01"
     assert updated["created_at"] == created["created_at"]
     assert updated["updated_at"] >= created["updated_at"]
 
