@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   filterApplications,
+  getFollowUpState,
   sortApplications,
 } from "../src/applicationView.js";
 
@@ -87,4 +88,22 @@ test("sorts applied dates newest first and puts missing dates last", () => {
 
 test("rejects unknown sort options", () => {
   assert.throws(() => sortApplications(applications, "random"), RangeError);
+});
+
+test("classifies follow-up dates as overdue, due today, scheduled, or unset", () => {
+  const today = "2026-11-25";
+
+  assert.equal(
+    getFollowUpState({ follow_up_date: "2026-11-24" }, today),
+    "overdue"
+  );
+  assert.equal(
+    getFollowUpState({ follow_up_date: today }, today),
+    "due_today"
+  );
+  assert.equal(
+    getFollowUpState({ follow_up_date: "2026-11-26" }, today),
+    "scheduled"
+  );
+  assert.equal(getFollowUpState({ follow_up_date: null }, today), null);
 });

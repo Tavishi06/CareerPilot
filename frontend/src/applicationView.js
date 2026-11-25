@@ -60,3 +60,17 @@ export function sortApplications(applications, sortBy = "recently_updated") {
     )
     .map(({ application }) => application);
 }
+
+export function getFollowUpState(application, today) {
+  if (!application.follow_up_date) {
+    return null;
+  }
+
+  if (application.follow_up_date < today) {
+    return "overdue";
+  }
+  if (application.follow_up_date === today) {
+    return "due_today";
+  }
+  return "scheduled";
+}
