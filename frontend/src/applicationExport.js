@@ -4,6 +4,7 @@ const APPLICATION_CSV_COLUMNS = [
   ["Location", "location"],
   ["Job URL", "job_url"],
   ["Applied date", "applied_date"],
+  ["Follow-up date", "follow_up_date"],
   ["Status", "status"],
   ["Notes", "notes"],
   ["Created at", "created_at"],

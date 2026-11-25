@@ -9,7 +9,7 @@ test("exports a header-only UTF-8 CSV when no applications exist", () => {
   assert.ok(csv.startsWith("\uFEFF"));
   assert.equal(
     csv.slice(1),
-    '"Company","Role title","Location","Job URL","Applied date","Status","Notes","Created at","Last updated"'
+    '"Company","Role title","Location","Job URL","Applied date","Follow-up date","Status","Notes","Created at","Last updated"'
   );
 });
 
@@ -21,6 +21,7 @@ test("quotes commas, quotes, and line breaks in application fields", () => {
       location: null,
       job_url: "https://example.com/job",
       applied_date: "2026-11-25",
+      follow_up_date: "2026-12-01",
       status: "applied",
       notes: "First line\nSecond line",
       created_at: "2026-11-25T10:00:00Z",
