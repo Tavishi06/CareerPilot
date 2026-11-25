@@ -9,6 +9,7 @@ import {
   filterApplications,
   sortApplications,
 } from "./applicationView.js";
+import { exportApplicationsCsv } from "./applicationExport.js";
 
 const APPLICATION_STATUSES = [
   "wishlist",
@@ -192,6 +193,24 @@ export default function ApplicationTracker({ apiBaseUrl }) {
           ? requestError.message
           : "Application could not be deleted."
       );
+    }
+  };
+
+  const handleExport = () => {
+    try {
+      const csv = exportApplicationsCsv(visibleApplications);
+      const downloadUrl = window.URL.createObjectURL(
+        new Blob([csv], { type: "text/csv;charset=utf-8" })
+      );
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = "careerpilot-applications.csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => window.URL.revokeObjectURL(downloadUrl), 0);
+    } catch {
+      setError("Applications could not be exported from this browser.");
     }
   };
 
@@ -421,6 +440,14 @@ export default function ApplicationTracker({ apiBaseUrl }) {
                 className="rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-300 hover:border-indigo-400 disabled:opacity-50"
               >
                 Refresh
+              </button>
+              <button
+                type="button"
+                onClick={handleExport}
+                disabled={visibleApplications.length === 0}
+                className="rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-300 hover:border-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Export CSV
               </button>
             </div>
           </div>
