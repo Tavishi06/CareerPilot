@@ -34,6 +34,7 @@ class ApplicationInput(BaseModel):
     location: str | None = Field(default=None, max_length=160)
     job_url: AnyHttpUrl | None = None
     applied_date: date | None = None
+    follow_up_date: date | None = None
     status: ApplicationStatus = ApplicationStatus.wishlist
     notes: str = Field(default="", max_length=5000)
 
@@ -60,6 +61,7 @@ class ApplicationRecord(BaseModel):
     location: str | None
     job_url: str | None
     applied_date: date | None
+    follow_up_date: date | None
     status: ApplicationStatus
     notes: str
     created_at: str

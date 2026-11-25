@@ -34,6 +34,7 @@ def valid_application(**updates):
         "location": "Remote",
         "job_url": "https://example.com/jobs/123",
         "applied_date": "2026-11-24",
+        "follow_up_date": "2026-12-01",
         "status": "applied",
         "notes": "Follow up next week.",
     }
@@ -52,6 +53,7 @@ def test_create_and_list_applications(application_database):
     assert created["company"] == "Example Corp"
     assert created["status"] == "applied"
     assert created["applied_date"] == "2026-11-24"
+    assert created["follow_up_date"] == "2026-12-01"
     assert client.get("/api/v1/applications").json() == [created]
 
 
@@ -84,10 +86,15 @@ def test_get_update_and_delete_application(application_database):
     assert client.get(item_url).json()["id"] == created["id"]
     updated_response = client.put(
         item_url,
-        json=valid_application(status="interviewing", notes="Phone screen scheduled."),
+        json=valid_application(
+            status="interviewing",
+            follow_up_date="2026-12-03",
+            notes="Phone screen scheduled.",
+        ),
     )
     assert updated_response.status_code == 200
     assert updated_response.json()["status"] == "interviewing"
+    assert updated_response.json()["follow_up_date"] == "2026-12-03"
     assert updated_response.json()["notes"] == "Phone screen scheduled."
 
     deleted_response = client.delete(item_url)
@@ -111,6 +118,7 @@ def test_application_routes_return_not_found_for_unknown_records(application_dat
         valid_application(status="in_progress"),
         valid_application(job_url="javascript:alert(1)"),
         valid_application(applied_date="not-a-date"),
+        valid_application(follow_up_date="not-a-date"),
     ],
 )
 def test_create_application_rejects_invalid_fields(application_database, payload):
