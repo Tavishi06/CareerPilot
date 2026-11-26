@@ -7,6 +7,7 @@ import {
 } from "./applicationsApi.js";
 import {
   filterApplications,
+  getFollowUpState,
   sortApplications,
 } from "./applicationView.js";
 import { exportApplicationsCsv } from "./applicationExport.js";
@@ -26,12 +27,25 @@ const EMPTY_FORM = {
   location: "",
   job_url: "",
   applied_date: "",
+  follow_up_date: "",
   status: "wishlist",
   notes: "",
 };
 
 function formatStatus(status) {
   return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
+function getLocalDateString() {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatDateOnly(value) {
+  return new Date(`${value}T00:00:00`).toLocaleDateString();
 }
 
 export default function ApplicationTracker({ apiBaseUrl }) {
@@ -87,6 +101,7 @@ export default function ApplicationTracker({ apiBaseUrl }) {
         location: form.location || null,
         job_url: form.job_url || null,
         applied_date: form.applied_date || null,
+        follow_up_date: form.follow_up_date || null,
       });
       setForm(EMPTY_FORM);
       setNotice("Application added to your tracker.");
@@ -137,6 +152,7 @@ export default function ApplicationTracker({ apiBaseUrl }) {
       location: application.location || "",
       job_url: application.job_url || "",
       applied_date: application.applied_date || "",
+      follow_up_date: application.follow_up_date || "",
       status: application.status,
       notes: application.notes || "",
     });
@@ -155,6 +171,7 @@ export default function ApplicationTracker({ apiBaseUrl }) {
         location: editForm.location || null,
         job_url: editForm.job_url || null,
         applied_date: editForm.applied_date || null,
+        follow_up_date: editForm.follow_up_date || null,
       });
       setApplications((current) =>
         current.map((item) => (item.id === updated.id ? updated : item))
@@ -226,6 +243,10 @@ export default function ApplicationTracker({ apiBaseUrl }) {
     count: applications.filter((application) => application.status === status)
       .length,
   }));
+  const overdueFollowUps = applications.filter(
+    (application) =>
+      getFollowUpState(application, getLocalDateString()) === "overdue"
+  ).length;
 
   return (
     <section
@@ -278,6 +299,15 @@ export default function ApplicationTracker({ apiBaseUrl }) {
           </div>
         ))}
       </div>
+      {overdueFollowUps > 0 && (
+        <p
+          role="status"
+          className="mt-3 rounded-xl border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-200"
+        >
+          {overdueFollowUps} follow-up{" "}
+          {overdueFollowUps === 1 ? "is" : "are"} overdue.
+        </p>
+      )}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
         <form
@@ -370,6 +400,18 @@ export default function ApplicationTracker({ apiBaseUrl }) {
             </div>
           </div>
 
+          <label htmlFor="application-follow-up-date" className="form-label">
+            Follow-up date
+          </label>
+          <input
+            id="application-follow-up-date"
+            name="follow_up_date"
+            type="date"
+            value={form.follow_up_date}
+            onChange={updateForm}
+            className="form-control"
+          />
+
           <label htmlFor="application-notes" className="form-label">
             Notes
           </label>
@@ -430,6 +472,7 @@ export default function ApplicationTracker({ apiBaseUrl }) {
                 >
                   <option value="recently_updated">Recently updated</option>
                   <option value="applied_newest">Applied date</option>
+                  <option value="follow_up_soonest">Follow-up date</option>
                   <option value="company_az">Company A-Z</option>
                 </select>
               </label>
@@ -567,6 +610,24 @@ export default function ApplicationTracker({ apiBaseUrl }) {
                         className="form-control"
                       />
                       <label
+                        htmlFor={`edit-follow-up-date-${application.id}`}
+                        className="form-label"
+                      >
+                        Follow-up date
+                      </label>
+                      <input
+                        id={`edit-follow-up-date-${application.id}`}
+                        type="date"
+                        value={editForm.follow_up_date}
+                        onChange={(event) =>
+                          setEditForm((current) => ({
+                            ...current,
+                            follow_up_date: event.target.value,
+                          }))
+                        }
+                        className="form-control"
+                      />
+                      <label
                         htmlFor={`edit-status-${application.id}`}
                         className="form-label"
                       >
@@ -664,6 +725,27 @@ export default function ApplicationTracker({ apiBaseUrl }) {
                         ? `Applied ${application.applied_date}`
                         : `Added ${new Date(application.created_at).toLocaleDateString()}`}
                     </span>
+                    {application.follow_up_date && (
+                      <span
+                        className={`font-medium ${
+                          getFollowUpState(
+                            application,
+                            getLocalDateString()
+                          ) === "overdue"
+                            ? "text-amber-300"
+                            : "text-slate-400"
+                        }`}
+                      >
+                        Follow up{" "}
+                        {getFollowUpState(
+                          application,
+                          getLocalDateString()
+                        ) === "overdue"
+                          ? "overdue · "
+                          : ""}
+                        {formatDateOnly(application.follow_up_date)}
+                      </span>
+                    )}
                     <div className="flex items-center gap-3">
                       {application.job_url && (
                         <a
