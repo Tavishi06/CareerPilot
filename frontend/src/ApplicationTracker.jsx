@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   createApplication,
   deleteApplication,
+  getApplicationHistory,
   listApplications,
   updateApplication,
 } from "./applicationsApi.js";
@@ -60,6 +61,9 @@ export default function ApplicationTracker({ apiBaseUrl }) {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [expandedHistoryId, setExpandedHistoryId] = useState(null);
+  const [historyByApplication, setHistoryByApplication] = useState({});
+  const [historyLoadingId, setHistoryLoadingId] = useState(null);
 
   const refreshApplications = useCallback(async () => {
     setIsLoading(true);
@@ -134,6 +138,11 @@ export default function ApplicationTracker({ apiBaseUrl }) {
       setApplications((current) =>
         current.map((item) => (item.id === updated.id ? updated : item))
       );
+      setHistoryByApplication((current) => {
+        const next = { ...current };
+        delete next[updated.id];
+        return next;
+      });
       setNotice(`Status updated to ${formatStatus(nextStatus)}.`);
     } catch (requestError) {
       setError(
@@ -141,6 +150,37 @@ export default function ApplicationTracker({ apiBaseUrl }) {
           ? requestError.message
           : "Application status could not be updated."
       );
+    }
+  };
+
+  const toggleApplicationHistory = async (applicationId) => {
+    if (expandedHistoryId === applicationId) {
+      setExpandedHistoryId(null);
+      return;
+    }
+
+    setExpandedHistoryId(applicationId);
+    if (historyByApplication[applicationId]) {
+      return;
+    }
+
+    setHistoryLoadingId(applicationId);
+    setError("");
+    try {
+      const history = await getApplicationHistory(apiBaseUrl, applicationId);
+      setHistoryByApplication((current) => ({
+        ...current,
+        [applicationId]: history,
+      }));
+    } catch (requestError) {
+      setExpandedHistoryId(null);
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Application history could not be loaded."
+      );
+    } finally {
+      setHistoryLoadingId(null);
     }
   };
 
@@ -176,6 +216,11 @@ export default function ApplicationTracker({ apiBaseUrl }) {
       setApplications((current) =>
         current.map((item) => (item.id === updated.id ? updated : item))
       );
+      setHistoryByApplication((current) => {
+        const next = { ...current };
+        delete next[updated.id];
+        return next;
+      });
       setEditingId(null);
       setNotice("Application details updated.");
     } catch (requestError) {
@@ -779,6 +824,44 @@ export default function ApplicationTracker({ apiBaseUrl }) {
                       {application.notes}
                     </p>
                   )}
+                  <div className="mt-3 border-t border-slate-800 pt-3">
+                    <button
+                      type="button"
+                      aria-expanded={expandedHistoryId === application.id}
+                      onClick={() => toggleApplicationHistory(application.id)}
+                      className="text-xs font-medium text-indigo-300 hover:text-indigo-200"
+                    >
+                      {expandedHistoryId === application.id
+                        ? "Hide status history"
+                        : "Show status history"}
+                    </button>
+                    {expandedHistoryId === application.id && (
+                      historyLoadingId === application.id ? (
+                        <p role="status" className="mt-2 text-xs text-slate-400">
+                          Loading status history...
+                        </p>
+                      ) : (
+                        <ol className="mt-2 space-y-2 text-xs text-slate-400">
+                          {historyByApplication[application.id]?.map((event) => (
+                            <li key={event.id}>
+                              {event.previous_status
+                                ? `${formatStatus(event.previous_status)} → `
+                                : "Created as "}
+                              <span className="text-slate-200">
+                                {formatStatus(event.new_status)}
+                              </span>
+                              <time
+                                className="ml-2"
+                                dateTime={event.changed_at}
+                              >
+                                {new Date(event.changed_at).toLocaleString()}
+                              </time>
+                            </li>
+                          ))}
+                        </ol>
+                      )
+                    )}
+                  </div>
                     </>
                   )}
                 </li>

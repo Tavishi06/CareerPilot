@@ -5,6 +5,7 @@ import {
   ApplicationApiError,
   createApplication,
   deleteApplication,
+  getApplicationHistory,
   listApplications,
   updateApplication,
 } from "../src/applicationsApi.js";
@@ -55,6 +56,22 @@ test("updates and deletes an application with encoded identifiers", async (conte
   );
   assert.equal(globalThis.fetch.mock.calls[1].arguments[1].method, "DELETE");
   assert.equal(deleted, null);
+});
+
+test("loads status history using an encoded application identifier", async (context) => {
+  context.mock.method(globalThis, "fetch", async () => ({
+    ok: true,
+    status: 200,
+    json: async () => [{ new_status: "applied" }],
+  }));
+
+  assert.deepEqual(await getApplicationHistory(BASE_URL, "id/with space"), [
+    { new_status: "applied" },
+  ]);
+  assert.equal(
+    globalThis.fetch.mock.calls[0].arguments[0],
+    `${BASE_URL}/api/v1/applications/id%2Fwith%20space/history`
+  );
 });
 
 test("surfaces API validation details with the HTTP status", async (context) => {

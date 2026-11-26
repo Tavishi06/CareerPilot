@@ -52,6 +52,12 @@ export function updateApplication(apiBaseUrl, id, application) {
   );
 }
 
+export function getApplicationHistory(apiBaseUrl, id) {
+  return requestApplications(
+    `${apiBaseUrl}/api/v1/applications/${encodeURIComponent(id)}/history`
+  );
+}
+
 export function deleteApplication(apiBaseUrl, id) {
   return requestApplications(
     `${apiBaseUrl}/api/v1/applications/${encodeURIComponent(id)}`,
