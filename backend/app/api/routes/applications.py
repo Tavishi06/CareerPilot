@@ -12,6 +12,7 @@ from app.services.application_tracking import (
     delete_application,
     get_application,
     list_applications,
+    list_application_status_history,
     update_application,
 )
 
@@ -68,6 +69,14 @@ class ApplicationRecord(BaseModel):
     updated_at: str
 
 
+class ApplicationStatusHistoryRecord(BaseModel):
+    id: int
+    application_id: str
+    previous_status: ApplicationStatus | None
+    new_status: ApplicationStatus
+    changed_at: str
+
+
 def get_application_connection() -> Iterator[sqlite3.Connection]:
     connection = connect_database()
     try:
@@ -112,6 +121,22 @@ def get_application_by_id(
             detail="Application not found.",
         )
     return application
+
+
+@router.get(
+    "/{application_id}/history",
+    response_model=list[ApplicationStatusHistoryRecord],
+)
+def get_application_history(
+    application_id: str,
+    connection: sqlite3.Connection = Depends(get_application_connection),
+) -> list[dict[str, object]]:
+    if get_application(connection, application_id) is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Application not found.",
+        )
+    return list_application_status_history(connection, application_id)
 
 
 @router.put("/{application_id}", response_model=ApplicationRecord)

@@ -102,10 +102,34 @@ def test_get_update_and_delete_application(application_database):
     assert client.get(item_url).status_code == 404
 
 
+def test_application_status_history_records_initial_status_and_transitions(
+    application_database,
+):
+    created = client.post(
+        "/api/v1/applications",
+        json=valid_application(status="applied"),
+    ).json()
+    item_url = f"/api/v1/applications/{created['id']}"
+
+    client.put(item_url, json=valid_application(status="interviewing"))
+
+    response = client.get(f"{item_url}/history")
+
+    assert response.status_code == 200
+    history = response.json()
+    assert [event["new_status"] for event in history] == [
+        "interviewing",
+        "applied",
+    ]
+    assert history[0]["previous_status"] == "applied"
+    assert history[1]["previous_status"] is None
+
+
 def test_application_routes_return_not_found_for_unknown_records(application_database):
     missing_url = "/api/v1/applications/not-found"
 
     assert client.get(missing_url).status_code == 404
+    assert client.get(f"{missing_url}/history").status_code == 404
     assert client.put(missing_url, json=valid_application()).status_code == 404
     assert client.delete(missing_url).status_code == 404
 
