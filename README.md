@@ -75,11 +75,13 @@ devices or users. Resource durations and target weeks are estimates.
 Job applications can be managed at `/api/v1/applications`: create records with
 `POST`, list them with `GET` (optionally filter with `?status=applied`), read
 one with `GET /{id}`, replace it with `PUT /{id}`, or delete it with
-`DELETE /{id}`. Supported statuses are `wishlist`, `applied`, `interviewing`,
-`offer`, `rejected`, and `withdrawn`. The tracker stores company, role,
-location, job link, applied date, status, and notes in SQLite. By default the
-database is `backend/data/careerpilot.db`; set `DATABASE_PATH` to choose another
-path. Database files are excluded from Git.
+`DELETE /{id}`. Read an application's status timeline with
+`GET /{id}/history`. Supported statuses are `wishlist`, `applied`,
+`interviewing`, `offer`, `rejected`, and `withdrawn`. The tracker stores
+company, role, location, job link, applied and follow-up dates, status, and notes
+in SQLite, and records the initial status and subsequent status changes. By
+default the database is `backend/data/careerpilot.db`; set `DATABASE_PATH` to
+choose another path. Database files are excluded from Git.
 
 The tracker currently has no user accounts or authentication and is intended
 for local, single-user development. Do not expose this API publicly or store
