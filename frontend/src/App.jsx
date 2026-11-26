@@ -11,8 +11,11 @@ import ApplicationTracker from "./ApplicationTracker.jsx";
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 const PROGRESS_STORAGE_KEY = "careerpilot.completedSkills";
+const THEME_STORAGE_KEY = "careerpilot.theme";
 
 export default function App() {
+  const [themePreference, setThemePreference] = useState(loadThemePreference);
+  const { theme, error: themeError } = themePreference;
   const [apiStatus, setApiStatus] = useState("checking");
   const [apiMessage, setApiMessage] = useState(
     "Connecting to CareerPilot backend..."
@@ -32,6 +35,23 @@ export default function App() {
     loadSavedInterviewHistory
   );
 
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+      setThemePreference({ theme: nextTheme, error: "" });
+    } catch {
+      setThemePreference({
+        theme: nextTheme,
+        error: "Your theme preference could not be saved in this browser.",
+      });
+    }
+  };
+
   const checkApi = useCallback(async () => {
     setApiStatus("checking");
 
@@ -49,7 +69,7 @@ export default function App() {
     } catch {
       setApiStatus("offline");
       setApiMessage(
-        "Backend not reachable. Start the FastAPI server and retry."
+        "CareerPilot services are unavailable. Check your connection and try again."
       );
     }
   }, []);
@@ -186,33 +206,48 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#0b1020] text-slate-100">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+      <header className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-6">
         <a href="#" className="flex items-center gap-3 text-inherit no-underline">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-500 text-xl font-bold">
             C
           </div>
           <div>
             <h1 className="text-xl font-bold">CareerPilot AI</h1>
-            <p className="text-xs text-slate-400">Intelligent Career Companion</p>
+            <p className="text-xs text-slate-400">Career planning, made practical</p>
           </div>
         </a>
-        <span className="rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300">
-          Early access
-        </span>
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+            className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-medium text-slate-300 hover:border-indigo-400"
+          >
+            {theme === "dark" ? "Light theme" : "Dark theme"}
+          </button>
+          <span className="rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300">
+            Career workspace
+          </span>
+        </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-6 pb-16">
+        {themeError && (
+          <p role="status" className="mb-4 text-sm text-amber-300">
+            {themeError}
+          </p>
+        )}
         <section className="py-12 md:py-16">
           <div className="mb-6 inline-flex rounded-full border border-indigo-400/30 bg-indigo-400/10 px-4 py-2 text-sm text-indigo-300">
-            AI-powered career intelligence
+            Career insights for your next move
           </div>
           <h2 className="max-w-3xl text-4xl font-bold leading-tight md:text-6xl">
-            Make your next move
-            <span className="text-indigo-400"> with a clearer strategy.</span>
+            Build a focused plan
+            <span className="text-indigo-400"> for your next opportunity.</span>
           </h2>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-400">
-            Compare your experience with a job description, see the skills that
-            match, and spot areas to prepare before you apply.
+            Compare your experience with a role, identify strengths and gaps,
+            and decide what to focus on before you apply.
           </p>
         </section>
 
@@ -229,11 +264,11 @@ export default function App() {
                 Job match
               </p>
               <h3 id="analysis-heading" className="mt-2 text-2xl font-bold">
-                Start with the details
+                Compare your experience
               </h3>
               <p className="mt-2 text-sm leading-6 text-slate-400">
-                Paste your resume text and the job description to get a
-                first-pass skill comparison.
+                Add your resume and a job description to see an initial skill
+                comparison and practical next steps.
               </p>
             </div>
 
@@ -331,11 +366,11 @@ export default function App() {
               disabled={analysisStatus === "loading"}
               className="mt-5 w-full rounded-xl bg-indigo-500 px-5 py-3 font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-wait disabled:opacity-60"
             >
-              {analysisStatus === "loading" ? "Analyzing..." : "Analyze skill match"}
+              {analysisStatus === "loading" ? "Reviewing..." : "Review skill alignment"}
             </button>
             <p className="mt-3 text-xs leading-5 text-slate-500">
-              This first-pass analysis uses a transparent set of supported
-              skill keywords. It does not replace a full resume review.
+              Results are based on supported skill keywords and are intended
+              as a starting point, not a substitute for a full resume review.
             </p>
           </form>
 
@@ -415,7 +450,7 @@ export default function App() {
         <section className="mt-10 rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h3 className="font-semibold">Backend connection</h3>
+              <h3 className="font-semibold">Service status</h3>
               <p className="mt-2 text-sm text-slate-400">{apiMessage}</p>
             </div>
             <div className="flex items-center gap-3">
@@ -433,8 +468,8 @@ export default function App() {
                 {apiStatus === "checking"
                   ? "Checking..."
                   : isOnline
-                    ? "Connected"
-                    : "Disconnected"}
+                    ? "Available"
+                    : "Unavailable"}
               </span>
               <button
                 type="button"
@@ -442,14 +477,14 @@ export default function App() {
                 disabled={apiStatus === "checking"}
                 className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold hover:border-indigo-400 disabled:opacity-50"
               >
-                Retry
+                Check again
               </button>
             </div>
           </div>
         </section>
 
         <footer className="mt-12 border-t border-slate-800 pt-6 text-center text-sm text-slate-500">
-          CareerPilot AI · Built for smarter career decisions
+          CareerPilot AI · Practical tools for your career journey
         </footer>
       </main>
     </div>
@@ -1050,6 +1085,21 @@ function loadProgress() {
     return {
       skills: new Set(),
       error: "Saved progress could not be loaded from this browser.",
+    };
+  }
+}
+
+function loadThemePreference() {
+  try {
+    const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+    return {
+      theme: savedTheme === "light" ? "light" : "dark",
+      error: "",
+    };
+  } catch {
+    return {
+      theme: "dark",
+      error: "Your theme preference could not be loaded from this browser.",
     };
   }
 }
