@@ -12,6 +12,12 @@ def test_connect_database_creates_parent_directory_and_applications_table(tmp_pa
             row["name"]
             for row in connection.execute("PRAGMA table_info(applications)")
         }
+        history_columns = {
+            row["name"]
+            for row in connection.execute(
+                "PRAGMA table_info(application_status_history)"
+            )
+        }
     finally:
         connection.close()
 
@@ -25,6 +31,13 @@ def test_connect_database_creates_parent_directory_and_applications_table(tmp_pa
         "created_at",
         "updated_at",
     }.issubset(columns)
+    assert {
+        "id",
+        "application_id",
+        "previous_status",
+        "new_status",
+        "changed_at",
+    }.issubset(history_columns)
 
 
 def test_connect_database_reuses_existing_database(tmp_path):

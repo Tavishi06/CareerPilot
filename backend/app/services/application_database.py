@@ -20,6 +20,17 @@ CREATE TABLE IF NOT EXISTS applications (
 )
 """
 
+APPLICATION_STATUS_HISTORY_SCHEMA = """
+CREATE TABLE IF NOT EXISTS application_status_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    application_id TEXT NOT NULL,
+    previous_status TEXT,
+    new_status TEXT NOT NULL,
+    changed_at TEXT NOT NULL,
+    FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
+)
+"""
+
 
 def connect_database(database_path: str | Path | None = None) -> sqlite3.Connection:
     path = Path(database_path or get_settings().database_path)
@@ -27,6 +38,7 @@ def connect_database(database_path: str | Path | None = None) -> sqlite3.Connect
 
     connection = sqlite3.connect(path, timeout=10)
     connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA foreign_keys = ON")
     connection.execute("PRAGMA busy_timeout = 10000")
     connection.execute(APPLICATIONS_SCHEMA)
     columns = {
@@ -37,5 +49,6 @@ def connect_database(database_path: str | Path | None = None) -> sqlite3.Connect
         connection.execute(
             "ALTER TABLE applications ADD COLUMN follow_up_date TEXT"
         )
+    connection.execute(APPLICATION_STATUS_HISTORY_SCHEMA)
     connection.commit()
     return connection
