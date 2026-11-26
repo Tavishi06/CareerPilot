@@ -75,6 +75,14 @@ def create_application(
         """,
         {"id": application_id, **values, "created_at": now, "updated_at": now},
     )
+    connection.execute(
+        """
+        INSERT INTO application_status_history (
+            application_id, previous_status, new_status, changed_at
+        ) VALUES (?, ?, ?, ?)
+        """,
+        (application_id, None, values["status"], now),
+    )
     connection.commit()
     application = get_application(connection, application_id)
     if application is None:
@@ -87,8 +95,13 @@ def update_application(
     application_id: str,
     fields: dict[str, Any],
 ) -> dict[str, Any] | None:
+    current_application = get_application(connection, application_id)
+    if current_application is None:
+        return None
+
     values = {field: fields.get(field) for field in APPLICATION_FIELDS}
     values["notes"] = values["notes"] or ""
+    updated_at = _utc_now()
     cursor = connection.execute(
         """
         UPDATE applications
@@ -106,13 +119,42 @@ def update_application(
         {
             "id": application_id,
             **values,
-            "updated_at": _utc_now(),
+            "updated_at": updated_at,
         },
     )
+    if current_application["status"] != values["status"]:
+        connection.execute(
+            """
+            INSERT INTO application_status_history (
+                application_id, previous_status, new_status, changed_at
+            ) VALUES (?, ?, ?, ?)
+            """,
+            (
+                application_id,
+                current_application["status"],
+                values["status"],
+                updated_at,
+            ),
+        )
     connection.commit()
     if cursor.rowcount == 0:
         return None
     return get_application(connection, application_id)
+
+
+def list_application_status_history(
+    connection: sqlite3.Connection, application_id: str
+) -> list[dict[str, Any]]:
+    rows = connection.execute(
+        """
+        SELECT id, application_id, previous_status, new_status, changed_at
+        FROM application_status_history
+        WHERE application_id = ?
+        ORDER BY changed_at DESC, id DESC
+        """,
+        (application_id,),
+    ).fetchall()
+    return [dict(row) for row in rows]
 
 
 def delete_application(
